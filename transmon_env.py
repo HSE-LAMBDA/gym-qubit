@@ -293,6 +293,7 @@ class TransmonEnv(gym.Env):
         return args['amp'] * args['action'][0] * np.sin(args['f_c'] * (args['time'] + t)) + \
                args['amp'] * args['action'][1] * np.cos(args['f_c'] * (args['time'] + t))
 
+
     def __qubit_eval(self, action_steps):
         result = mesolve(H=[self.H, [self.Ht, self._optimal_control]],
                          rho0=self.qubit_resonator_state,
@@ -316,6 +317,41 @@ class TransmonEnv(gym.Env):
         qubit_resonator_state = result.states[-1]
         loss = fidelity(qubit_state, self.qubit_target)
         return loss, qubit_state, resonator_state, qubit_resonator_state, result
+
+
+class TransmonEnvSin(TransmonEnv):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
+
+    def reset(self):
+        return super(TransmonEnvSin, self).reset()
+
+    def step(self, action):
+        observable_data, reward, episode_over, info = super(TransmonEnvSin, self).step(
+            (self.amp * np.sin(pi * np.array(action))).tolist()
+        )
+        return observable_data, reward, episode_over, info
+
+
+class TransmonEnvSinEnergyModulated(TransmonEnv):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
+
+    def reset(self):
+        return super(TransmonEnvSinEnergyModulated, self).reset()
+
+    def step(self, action):
+        dummy_step = dummyExternalDrive2D(self.delta_time * self.time_stamp, self.epsilon, self.f_c) # +1?
+        observable_data, reward, episode_over, info = super(TransmonEnvSinEnergyModulated, self).step( 
+            [
+                dummy_step[0] + action[0],
+                dummy_step[1] + action[1]
+            ]
+        )
+        return observable_data, reward, episode_over, info
+
 
 class EnvRNN(gym.Env):
     def __init__(self, env, seq_length):
