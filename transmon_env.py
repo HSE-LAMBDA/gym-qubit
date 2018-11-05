@@ -52,7 +52,7 @@ class TransmonEnv(gym.Env):
                  f_c=12e9, nn=lambda x, args: 0., time_discount=False,
                  amp=1e-2, reward_scaling=1):
         self.action_space = spaces.Box(low=-np.inf, high=np.inf, shape=(2,), dtype=np.float32)
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(10,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(5,), dtype=np.float32)
         self.f_c = f_c / GHz
         self.delta_time = GHz / f_c # nanoseconds
         self.amp = amp
@@ -266,20 +266,13 @@ class TransmonEnv(gym.Env):
         self.resonator_state = resonator_state
         self.qubit_resonator_state = qubit_resonator_state
         state_data = self.__state_data()
-        dum_action = dummyExternalDrive2D(self.delta_time * self.time_stamp, self.epsilon, self.f_c)
         observable_data = [
             # physical measures
             mesolve_result.expect[0][-1],
             mesolve_result.expect[1][-1],
             mesolve_result.expect[2][-1],
             mesolve_result.expect[3][-1],
-            mesolve_result.expect[4][-1],
-            # self-defined additional measures which could help agent to train
-            self.fidelity,
-            dum_action[0],
-            dum_action[1],
-            action[0],
-            action[1]
+            mesolve_result.expect[4][-1]
         ]
         reward = new_fidelity - self.fidelity
         self.fidelity = new_fidelity
